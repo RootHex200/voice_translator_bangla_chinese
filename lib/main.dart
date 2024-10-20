@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 
@@ -42,6 +41,14 @@ class _VoiceTranslatorState extends State<VoiceTranslator> {
     // if //result == 1) setState(() => ttsState = TtsState.playing);
   }
 
+Future chineseSpeak() async {
+    await _flutterTts.setLanguage("zh-CN"); // Set to Chinese language
+    //await _flutterTts.setVoice({"name": "zh-cn-x-zhc-network", "locale": "zh-CN"}); // Set Chinese voice
+    await _flutterTts.speak("我的名字是萨比图。我会说中文。"); // Replace with Chinese text
+    // if //result == 1) setState(() => ttsState = TtsState.playing);
+}
+
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -55,6 +62,12 @@ class _VoiceTranslatorState extends State<VoiceTranslator> {
             ElevatedButton(
               onPressed: () {
                 banglaSpeak();
+              },
+              child: const Text("click to Listen Bangla"),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                chineseSpeak();
               },
               child: const Text("click to Listen Bangla"),
             ),
