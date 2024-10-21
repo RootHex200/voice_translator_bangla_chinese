@@ -35,8 +35,8 @@ class _VoiceTranslatorState extends State<VoiceTranslator> {
   late FlutterTts _flutterTts;
   late FlutterSoundRecorder _recorder;
   late String _filePath;
-  bool _isRecording = false;
-
+  bool _isBanglaRecording = false;
+  bool _isChineseRecording = false;
   @override
   void initState() {
     super.initState();
@@ -62,30 +62,31 @@ class _VoiceTranslatorState extends State<VoiceTranslator> {
 
   // Record Bangla voice and save in .wav format
   Future<void> _recordBangla() async {
-    if (_isRecording) return;
+    if (_isBanglaRecording) return;
 
     // Generate a unique file path for this recording
     _filePath = await _generateUniqueFilePath();
 
     await _recorder.startRecorder(toFile: _filePath, codec: Codec.pcm16WAV);
     setState(() {
-      _isRecording = true;
+      _isBanglaRecording = true;
     });
   }
 
   // Stop recording and send to Python server for Bangla to Chinese translation
   Future<void> _stopAndTranslateBanglaToChinese() async {
-    if (!_isRecording) return;
+    if (!_isBanglaRecording) return;
     await _recorder.stopRecorder();
     setState(() {
-      _isRecording = false;
+      _isBanglaRecording = false;
     });
 
     log("Bangla audio recorded at: $_filePath");
     // Send the recorded file to the Flask server
     final request = http.MultipartRequest(
       'POST',
-      Uri.parse('http://192.168.1.5:5000/bangla_voice_to_chinese_voice'),
+      Uri.parse(
+          'https://461b-103-60-161-26.ngrok-free.app/bangla_voice_to_chinese_voice'),
     );
     request.files.add(await http.MultipartFile.fromPath('file', _filePath));
 
@@ -102,30 +103,31 @@ class _VoiceTranslatorState extends State<VoiceTranslator> {
 
   // Record Chinese voice and save in .wav format
   Future<void> _recordChinese() async {
-    if (_isRecording) return;
+    if (_isChineseRecording) return;
 
     // Generate a unique file path for this recording
     _filePath = await _generateUniqueFilePath();
 
     await _recorder.startRecorder(toFile: _filePath, codec: Codec.pcm16WAV);
     setState(() {
-      _isRecording = true;
+      _isChineseRecording = true;
     });
   }
 
   // Stop recording and send to Python server for Chinese to Bangla translation
   Future<void> _stopAndTranslateChineseToBangla() async {
-    if (!_isRecording) return;
+    if (!_isChineseRecording) return;
     await _recorder.stopRecorder();
     setState(() {
-      _isRecording = false;
+      _isChineseRecording = false;
     });
 
     log("Chinese audio recorded at: $_filePath");
     // Send the recorded file to the Flask server
     final request = http.MultipartRequest(
       'POST',
-      Uri.parse('http://192.168.1.5:5000/chinese_voice_to_bangla'),
+      Uri.parse(
+          'https://461b-103-60-161-26.ngrok-free.app/chinese_voice_to_bangla'),
     );
     request.files.add(await http.MultipartFile.fromPath('file', _filePath));
 
@@ -167,17 +169,15 @@ class _VoiceTranslatorState extends State<VoiceTranslator> {
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
+            ElevatedButton(
+              onPressed: _isBanglaRecording ? _stopAndTranslateBanglaToChinese : _recordBangla,
+              child: Text(_isBanglaRecording ? "Stop Recording (Bangla)" : "Record Bangla Voice"),
+            ),
 
-            ElevatedButton(
-                onPressed: () async {
-                  await _recordBangla();
-                },
-                child: const Text("Record Bangla Voice")),
-            ElevatedButton(
-                onPressed: () async {
-                  _stopAndTranslateBanglaToChinese();
-                },
-                child: const Text("Stop Recording (Bangla)"))
+                        ElevatedButton(
+              onPressed: _isChineseRecording ? _stopAndTranslateChineseToBangla : _recordChinese,
+              child: Text(_isChineseRecording ? "Stop Recording (Chinese)" : "Record Chinese Voice"),
+            ),
           ],
         ),
       ),
