@@ -37,6 +37,8 @@ class _VoiceTranslatorState extends State<VoiceTranslator> {
   late String _filePath;
   bool _isBanglaRecording = false;
   bool _isChineseRecording = false;
+  String? _selectedLanguagePair = "Bangla to Chinese"; // Default selection
+
   @override
   void initState() {
     super.initState();
@@ -53,10 +55,8 @@ class _VoiceTranslatorState extends State<VoiceTranslator> {
 
   // Generate a unique file path for the recording
   Future<String> _generateUniqueFilePath() async {
-    final dir =
-        await getApplicationDocumentsDirectory(); // Get the app directory
-    final timestamp = DateFormat('yyyyMMdd_HHmmss')
-        .format(DateTime.now()); // Create a timestamp
+    final dir = await getApplicationDocumentsDirectory(); // Get the app directory
+    final timestamp = DateFormat('yyyyMMdd_HHmmss').format(DateTime.now()); // Create a timestamp
     return '${dir.path}/recorded_voice_$timestamp.wav'; // Unique file name
   }
 
@@ -64,9 +64,7 @@ class _VoiceTranslatorState extends State<VoiceTranslator> {
   Future<void> _recordBangla() async {
     if (_isBanglaRecording) return;
 
-    // Generate a unique file path for this recording
     _filePath = await _generateUniqueFilePath();
-
     await _recorder.startRecorder(toFile: _filePath, codec: Codec.pcm16WAV);
     setState(() {
       _isBanglaRecording = true;
@@ -82,11 +80,9 @@ class _VoiceTranslatorState extends State<VoiceTranslator> {
     });
 
     log("Bangla audio recorded at: $_filePath");
-    // Send the recorded file to the Flask server
     final request = http.MultipartRequest(
       'POST',
-      Uri.parse(
-          'https://94b7-103-60-161-26.ngrok-free.app/bangla_voice_to_chinese_voice'),
+      Uri.parse('https://sabitur.hitaishi.com.bd/voice/bangla_voice_to_chinese_voice'),
     );
     request.files.add(await http.MultipartFile.fromPath('file', _filePath));
 
@@ -98,16 +94,13 @@ class _VoiceTranslatorState extends State<VoiceTranslator> {
     } else {
       print('Failed to get response: ${response.statusCode}');
     }
-    print("Bangla to Chinese translation request done.");
   }
 
   // Record Chinese voice and save in .wav format
   Future<void> _recordChinese() async {
     if (_isChineseRecording) return;
 
-    // Generate a unique file path for this recording
     _filePath = await _generateUniqueFilePath();
-
     await _recorder.startRecorder(toFile: _filePath, codec: Codec.pcm16WAV);
     setState(() {
       _isChineseRecording = true;
@@ -123,11 +116,9 @@ class _VoiceTranslatorState extends State<VoiceTranslator> {
     });
 
     log("Chinese audio recorded at: $_filePath");
-    // Send the recorded file to the Flask server
     final request = http.MultipartRequest(
       'POST',
-      Uri.parse(
-          'https://94b7-103-60-161-26.ngrok-free.app/chinese_voice_to_bangla'),
+      Uri.parse('https://sabitur.hitaishi.com.bd/voice/chinese_voice_to_bangla'),
     );
     request.files.add(await http.MultipartFile.fromPath('file', _filePath));
 
@@ -163,80 +154,93 @@ class _VoiceTranslatorState extends State<VoiceTranslator> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Bangla to Chinese Translator'),
+        title: const Text('Voice Translator'),
+        centerTitle: true,
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            const Text(
-              "Bangla To Chinese",
-              style: TextStyle(
-                  color: Colors.black,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 20),
-            ),
-            GestureDetector(
-              onTap: _isBanglaRecording
-                  ? _stopAndTranslateBanglaToChinese
-                  : _recordBangla,
-              child: CircleAvatar(
-                radius: 40,
-                backgroundColor: Colors.pinkAccent,
-                child: _isBanglaRecording
-                    ? const Icon(
-                        Icons.record_voice_over,
-                        size: 40,
-                      )
-                    : const Icon(
-                        Icons.mic,
-                        size: 40,
-                      ),
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // Dropdown for selecting translation direction
+              DropdownButton<String>(
+                value: _selectedLanguagePair,
+                items: [
+                  DropdownMenuItem(
+                    value: "Bangla to Chinese",
+                    child: Text("Bangla to Chinese"),
+                  ),
+                  DropdownMenuItem(
+                    value: "Chinese to Bangla",
+                    child: Text("Chinese to Bangla"),
+                  ),
+                ],
+                onChanged: (value) {
+                  setState(() {
+                    _selectedLanguagePair = value!;
+                  });
+                },
               ),
-            ),
-
-            const Text(
-              "Chinese To Bangla",
-              style: TextStyle(
-                  color: Colors.black,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 20),
-            ),
-            GestureDetector(
-              onTap: _isChineseRecording
-                  ? _stopAndTranslateChineseToBangla
-                  : _recordChinese,
-              child: CircleAvatar(
-                radius: 40,
-                backgroundColor: Colors.pinkAccent,
-                child: _isChineseRecording
-                    ? const Icon(
-                        Icons.record_voice_over,
-                        size: 40,
-                      )
-                    : const Icon(
-                        Icons.mic,
-                        size: 40,
-                      ),
-              ),
-            ),
-            // ElevatedButton(
-            //   onPressed: _isChineseRecording
-            //       ? _stopAndTranslateChineseToBangla
-            //       : _recordChinese,
-            //   child: Row(
-            //     mainAxisSize: MainAxisSize.min,
-            //     children: [
-            //       const Icon(Icons.mic), // Microphone icon
-            //       const SizedBox(
-            //           width: 8), // Add some spacing between the icon and text
-            //       Text(_isChineseRecording
-            //           ? "Stop Recording (Chinese)"
-            //           : "Record Chinese Voice"),
-            //     ],
-            //   ),
-            // ),
-          ],
+              const SizedBox(height: 20),
+        
+              // Conditionally show record button based on selection
+              if (_selectedLanguagePair == "Bangla to Chinese") ...[
+                const Text(
+                  "Bangla To Chinese",
+                  style: TextStyle(
+                      color: Colors.black,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 20),
+                ),
+                GestureDetector(
+                  onTap: _isBanglaRecording
+                      ? _stopAndTranslateBanglaToChinese
+                      : _recordBangla,
+                  child: CircleAvatar(
+                    radius: 40,
+                    backgroundColor: Colors.pinkAccent,
+                    child: _isBanglaRecording
+                        ? const Icon(
+                            Icons.record_voice_over,
+                            size: 40,
+                          )
+                        : const Icon(
+                            Icons.mic,
+                            size: 40,
+                          ),
+                  ),
+                ),
+              ] else if (_selectedLanguagePair == "Chinese to Bangla") ...[
+                const Text(
+                  "Chinese To Bangla",
+                  style: TextStyle(
+                      color: Colors.black,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 20),
+                ),
+                GestureDetector(
+                  onTap: _isChineseRecording
+                      ? _stopAndTranslateChineseToBangla
+                      : _recordChinese,
+                  child: CircleAvatar(
+                    radius: 40,
+                    backgroundColor: Colors.pinkAccent,
+                    child: _isChineseRecording
+                        ? const Icon(
+                            Icons.record_voice_over,
+                            size: 40,
+                          )
+                        : const Icon(
+                            Icons.mic,
+                            size: 40,
+                          ),
+                  ),
+                ),
+              ],
+            ],
+          ),
         ),
       ),
     );
