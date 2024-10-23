@@ -4,7 +4,6 @@ import 'package:flutter_tts/flutter_tts.dart';
 import 'package:flutter_sound/flutter_sound.dart';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
-import 'dart:io';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:intl/intl.dart'; // For timestamp formatting
 
@@ -55,8 +54,10 @@ class _VoiceTranslatorState extends State<VoiceTranslator> {
 
   // Generate a unique file path for the recording
   Future<String> _generateUniqueFilePath() async {
-    final dir = await getApplicationDocumentsDirectory(); // Get the app directory
-    final timestamp = DateFormat('yyyyMMdd_HHmmss').format(DateTime.now()); // Create a timestamp
+    final dir =
+        await getApplicationDocumentsDirectory(); // Get the app directory
+    final timestamp = DateFormat('yyyyMMdd_HHmmss')
+        .format(DateTime.now()); // Create a timestamp
     return '${dir.path}/recorded_voice_$timestamp.wav'; // Unique file name
   }
 
@@ -79,20 +80,19 @@ class _VoiceTranslatorState extends State<VoiceTranslator> {
       _isBanglaRecording = false;
     });
 
-    log("Bangla audio recorded at: $_filePath");
+    // log("Bangla audio recorded at: $_filePath");
     final request = http.MultipartRequest(
       'POST',
-      Uri.parse('https://sabitur.hitaishi.com.bd/voice/bangla_voice_to_chinese_voice'),
+      Uri.parse(
+          'https://sabitur.hitaishi.com.bd/voice/bangla_voice_to_chinese_voice'),
     );
     request.files.add(await http.MultipartFile.fromPath('file', _filePath));
 
     final response = await request.send();
     if (response.statusCode == 200) {
       final translatedText = await response.stream.bytesToString();
-      print(translatedText);
       _speakChinese(translatedText);
     } else {
-      print('Failed to get response: ${response.statusCode}');
     }
   }
 
@@ -118,7 +118,8 @@ class _VoiceTranslatorState extends State<VoiceTranslator> {
     log("Chinese audio recorded at: $_filePath");
     final request = http.MultipartRequest(
       'POST',
-      Uri.parse('https://sabitur.hitaishi.com.bd/voice/chinese_voice_to_bangla'),
+      Uri.parse(
+          'https://sabitur.hitaishi.com.bd/voice/chinese_voice_to_bangla'),
     );
     request.files.add(await http.MultipartFile.fromPath('file', _filePath));
 
@@ -127,7 +128,6 @@ class _VoiceTranslatorState extends State<VoiceTranslator> {
       final translatedText = await response.stream.bytesToString();
       _speakBangla(translatedText);
     } else {
-      print('Failed to get response: ${response.statusCode}');
     }
   }
 
@@ -154,92 +154,118 @@ class _VoiceTranslatorState extends State<VoiceTranslator> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Voice Translator'),
+        backgroundColor: const Color(0xff001f4d),
+        title: const Text(
+          'Voice Translator',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
         centerTitle: true,
       ),
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              // Dropdown for selecting translation direction
-              DropdownButton<String>(
-                value: _selectedLanguagePair,
-                items: [
-                  DropdownMenuItem(
-                    value: "Bangla to Chinese",
-                    child: Text("Bangla to Chinese"),
+      body: Container(
+        decoration: const BoxDecoration(
+          image: DecorationImage(
+            image: AssetImage(
+                "assets/images/bg.jpg"), // Replace with your actual image path
+            fit: BoxFit.cover,
+          ),
+        ),
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  padding:const EdgeInsets.symmetric(horizontal: 10),
+                  decoration: BoxDecoration(
+                    color: Colors.white, // Set the background color to white
+                    borderRadius:
+                        BorderRadius.circular(5.0), // Set the border radius
                   ),
-                  DropdownMenuItem(
-                    value: "Chinese to Bangla",
-                    child: Text("Chinese to Bangla"),
+                  child: DropdownButton<String>(
+                    value: _selectedLanguagePair,
+                    items: const [
+                      DropdownMenuItem(
+                        value: "Bangla to Chinese",
+                        child: Text("Bangla to Chinese"),
+                      ),
+                      DropdownMenuItem(
+                        value: "Chinese to Bangla",
+                        child: Text("Chinese to Bangla"),
+                      ),
+                    ],
+                    onChanged: (value) {
+                      setState(() {
+                        _selectedLanguagePair = value!;
+                      });
+                    },
+                  ),
+                ),
+                const SizedBox(height: 20),
+
+                // Conditionally show record button based on selection
+                if (_selectedLanguagePair == "Bangla to Chinese") ...[
+                  const Text(
+                    "Bangla To Chinese",
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 20),
+                  ),
+                  const SizedBox(
+                    height: 10,
+                  ),
+                  GestureDetector(
+                    onTap: _isBanglaRecording
+                        ? _stopAndTranslateBanglaToChinese
+                        : _recordBangla,
+                    child: CircleAvatar(
+                      radius: 40,
+                      backgroundColor: Colors.pinkAccent,
+                      child: _isBanglaRecording
+                          ? const Icon(
+                              Icons.record_voice_over,
+                              size: 40,
+                            )
+                          : const Icon(
+                              Icons.mic,
+                              size: 40,
+                            ),
+                    ),
+                  ),
+                ] else if (_selectedLanguagePair == "Chinese to Bangla") ...[
+                  const Text(
+                    "Chinese To Bangla",
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 20),
+                  ),
+                  const SizedBox(
+                    height: 10,
+                  ),
+                  GestureDetector(
+                    onTap: _isChineseRecording
+                        ? _stopAndTranslateChineseToBangla
+                        : _recordChinese,
+                    child: CircleAvatar(
+                      radius: 40,
+                      backgroundColor: Colors.pinkAccent,
+                      child: _isChineseRecording
+                          ? const Icon(
+                              Icons.record_voice_over,
+                              size: 40,
+                            )
+                          : const Icon(
+                              Icons.mic,
+                              size: 40,
+                            ),
+                    ),
                   ),
                 ],
-                onChanged: (value) {
-                  setState(() {
-                    _selectedLanguagePair = value!;
-                  });
-                },
-              ),
-              const SizedBox(height: 20),
-        
-              // Conditionally show record button based on selection
-              if (_selectedLanguagePair == "Bangla to Chinese") ...[
-                const Text(
-                  "Bangla To Chinese",
-                  style: TextStyle(
-                      color: Colors.black,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 20),
-                ),
-                GestureDetector(
-                  onTap: _isBanglaRecording
-                      ? _stopAndTranslateBanglaToChinese
-                      : _recordBangla,
-                  child: CircleAvatar(
-                    radius: 40,
-                    backgroundColor: Colors.pinkAccent,
-                    child: _isBanglaRecording
-                        ? const Icon(
-                            Icons.record_voice_over,
-                            size: 40,
-                          )
-                        : const Icon(
-                            Icons.mic,
-                            size: 40,
-                          ),
-                  ),
-                ),
-              ] else if (_selectedLanguagePair == "Chinese to Bangla") ...[
-                const Text(
-                  "Chinese To Bangla",
-                  style: TextStyle(
-                      color: Colors.black,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 20),
-                ),
-                GestureDetector(
-                  onTap: _isChineseRecording
-                      ? _stopAndTranslateChineseToBangla
-                      : _recordChinese,
-                  child: CircleAvatar(
-                    radius: 40,
-                    backgroundColor: Colors.pinkAccent,
-                    child: _isChineseRecording
-                        ? const Icon(
-                            Icons.record_voice_over,
-                            size: 40,
-                          )
-                        : const Icon(
-                            Icons.mic,
-                            size: 40,
-                          ),
-                  ),
-                ),
               ],
-            ],
+            ),
           ),
         ),
       ),
